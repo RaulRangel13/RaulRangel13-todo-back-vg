@@ -29,7 +29,7 @@ namespace Api.Controllers
             else if (resultado.ErrosMessage.Count > 0)
                 return BadRequest(resultado);
 
-            return StatusCode(StatusCodes.Status500InternalServerError);
+            return StatusCode(StatusCodes.Status500InternalServerError); 
         }
 
         [HttpPost("login")]
