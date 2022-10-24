@@ -10,10 +10,11 @@ namespace Domain.Interfaces.Services
 {
     public interface ITodoService : IBaseService
     {
-        Task<IEnumerable<TodoDto>> GetAllTodos();
+        Task<IEnumerable<TodoDto>> GetAllTodos(string userId);
         Task<TodoDto> GetTodoById(int id);
-        Task<TodoDto> CreateTodo(TodoDto todoDto);
-        Task<TodoDto> UpdateTodo(TodoDto todoDto);
+        Task<TodoDto> CreateTodo(TodoDto todoDto, string userId);
+        Task<bool> CreateTodos(IEnumerable<TodoDto> todosDto, string userId);
+        Task<TodoDto> UpdateTodo(TodoDto todoDto, string userId);
         Task<bool> DeleTeTodoById(int id);
         Task<bool?> IsDoneTodo(int id);
     }

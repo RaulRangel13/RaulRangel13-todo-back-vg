@@ -23,10 +23,10 @@ namespace Domain.Services
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<TodoDto>> GetAllTodos()
+        public async Task<IEnumerable<TodoDto>> GetAllTodos(string userId)
         {
-            var todoList = await _repository.GetAllAsync();
-            return _mapper.Map<IEnumerable<TodoDto>>(todoList);
+            var todoList = _repository.GetAllAsync().Result.Where(x => x.UserId == userId).OrderByDescending(x => x.CreatedAt);
+            return _mapper.Map<IEnumerable<TodoDto>>(todoList.Where(x => x.UserId == userId));
         }
 
         public async Task<TodoDto> GetTodoById(int id)
@@ -34,20 +34,57 @@ namespace Domain.Services
             var todo = await _repository.GetByIdyAsync(id);
             return _mapper.Map<TodoDto>(todo);
         }
-        public async Task<TodoDto> CreateTodo(TodoDto todoDto)
+        public async Task<TodoDto> CreateTodo(TodoDto todoDto, string userId)
         {
-            if (todoDto is null)
+            if (todoDto is null || userId is null)
                 return null;
 
             var todo = _mapper.Map<Todo>(todoDto);
+            todo.UserId = userId;
             todo.CreatedAt = DateTime.Now;
             todo = await _repository.CreateAsync(todo);
             return _mapper.Map<TodoDto>(todo);
         }
 
-        public async Task<TodoDto> UpdateTodo(TodoDto todoDto)
+        public async Task<bool> CreateTodos(IEnumerable<TodoDto> todosDto, string userId)
+        {
+            if (todosDto is null || userId is null)
+                return false;
+
+            try
+            {
+                var todos = _mapper.Map<IEnumerable<Todo>>(todosDto);
+                foreach (var item in todos)
+                {
+                    item.UserId = userId;
+                    if (await _repository.GetByIdyAsync(item.Id) == null)
+                    {
+                        item.Id = 0;
+                        item.CreatedAt = DateTime.Now;
+                        await _repository.CreateAsync(item);
+                    }
+                    else
+                    {
+                        item.AlteratedAt = DateTime.Now;
+                        await _repository.UpdateAsync(item);
+                    }
+                }
+                return true;
+            }
+            catch (Exception e)
+            {
+
+                return false;
+            }
+            
+        }
+
+        public async Task<TodoDto> UpdateTodo(TodoDto todoDto, string userId)
         {
             var todo = _mapper.Map<Todo>(todoDto);
+            var oldTodo = await _repository.GetByIdyAsync(todo.Id);
+            todo.CreatedAt = oldTodo.CreatedAt;
+            todo.UserId = userId;
             todo.AlteratedAt = DateTime.Now;
             todo = await _repository.UpdateAsync(todo);
             return _mapper.Map<TodoDto>(todo);

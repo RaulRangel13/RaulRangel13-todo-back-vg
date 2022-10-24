@@ -10,6 +10,7 @@ namespace Domain.Interfaces.Repositories
 {
     public interface ITodoRepository : IBaseRepository<Todo>
     {
+
         Task<bool?> IsDoneStatus(int id);
     }
 }

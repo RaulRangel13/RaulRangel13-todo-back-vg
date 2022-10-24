@@ -32,11 +32,13 @@ namespace Identity.Services
                 EmailConfirmed = true
             };
 
-            var result = await _userManager.CreateAsync(identityUser, usuarioCadastro.Senha);
+            var result = await _userManager.CreateAsync(identityUser, usuarioCadastro.Password);
             if (result.Succeeded)
                 await _userManager.SetLockoutEnabledAsync(identityUser, false);
 
-            var usuarioCadastroResponse = new UserCreateResponseDto(result.Succeeded);
+            var credentials = await GerarCredenciais(identityUser.Email);
+
+            var usuarioCadastroResponse = new UserCreateResponseDto(result.Succeeded, credentials.AccessToken);
             if (!result.Succeeded && result.Errors.Count() > 0)
                 usuarioCadastroResponse.AdicionarErros(result.Errors.Select(r => r.Description));
 
@@ -45,7 +47,7 @@ namespace Identity.Services
 
         public async Task<UserLoginResponseDto> Login(UserLoginRequestDto usuarioLogin)
         {
-            var result = await _signInManager.PasswordSignInAsync(usuarioLogin.Email, usuarioLogin.Senha, false, true);
+            var result = await _signInManager.PasswordSignInAsync(usuarioLogin.Email, usuarioLogin.Password, false, true);
             if (result.Succeeded)
                 return await GerarCredenciais(usuarioLogin.Email);
 
@@ -97,7 +99,9 @@ namespace Identity.Services
             (
                 sucesso: true,
                 accessToken: accessToken,
-                refreshToken: refreshToken
+                refreshToken: refreshToken,
+                email: user.Email,
+                userName: user.UserName
             );
         }
 

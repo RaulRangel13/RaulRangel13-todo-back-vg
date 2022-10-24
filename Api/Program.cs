@@ -8,6 +8,7 @@ using Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -26,55 +27,9 @@ namespace Api
             DependencyResolver.DependencyResolve(builder.Services);
             builder.Services.AddDbContext<TodoContext>(options => options.UseNpgsql("Server=localhost;Port=5432;Database=TodoList;User Id=postgres;Password=root"));
             builder.Services.AddDbContext<IdentityDataContext>(options => options.UseNpgsql("Server=localhost;Port=5432;Database=TodoList;User Id=postgres;Password=root"));
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-
-            var jwtAppSettingOptions = builder.Configuration.GetSection(nameof(JwtOptions));
-            var securityKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(builder.Configuration.GetSection("JwtOptions:SecurityKey").Value));
-
-            builder.Services.Configure<JwtOptions>(options =>
-            {
-                options.Issuer = jwtAppSettingOptions[nameof(JwtOptions.Issuer)];
-                options.Audience = jwtAppSettingOptions[nameof(JwtOptions.Audience)];
-                options.SigningCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha512);
-                options.AccessTokenExpiration = int.Parse(jwtAppSettingOptions[nameof(JwtOptions.AccessTokenExpiration)] ?? "0");
-                options.RefreshTokenExpiration = int.Parse(jwtAppSettingOptions[nameof(JwtOptions.RefreshTokenExpiration)] ?? "0");
-            });
-
-            builder.Services.Configure<IdentityOptions>(options =>
-            {
-                options.Password.RequireDigit = true;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireNonAlphanumeric = true;
-                options.Password.RequireUppercase = true;
-                options.Password.RequiredLength = 6;
-            });
-
-            var tokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidIssuer = builder.Configuration.GetSection("JwtOptions:Issuer").Value,
-
-                ValidateAudience = true,
-                ValidAudience = builder.Configuration.GetSection("JwtOptions:Audience").Value,
-
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = securityKey,
-
-                RequireExpirationTime = true,
-                ValidateLifetime = true,
-
-                ClockSkew = TimeSpan.Zero
-            };
-
-            builder.Services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = tokenValidationParameters;
-            });
 
             builder.Services.AddControllers();
 
@@ -131,6 +86,62 @@ namespace Api
             });
             });
 
+            var jwtAppSettingOptions = builder.Configuration.GetSection(nameof(JwtOptions));
+            var securityKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(builder.Configuration.GetSection("JwtOptions:SecurityKey").Value));
+
+            builder.Services.Configure<JwtOptions>(options =>
+            {
+                options.Issuer = jwtAppSettingOptions[nameof(JwtOptions.Issuer)];
+                options.Audience = jwtAppSettingOptions[nameof(JwtOptions.Audience)];
+                options.SigningCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha512);
+                options.AccessTokenExpiration = int.Parse(jwtAppSettingOptions[nameof(JwtOptions.AccessTokenExpiration)] ?? "0");
+                options.RefreshTokenExpiration = int.Parse(jwtAppSettingOptions[nameof(JwtOptions.RefreshTokenExpiration)] ?? "0");
+            });
+
+            builder.Services.Configure<IdentityOptions>(options =>
+            {
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireNonAlphanumeric = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequiredLength = 6;
+            });
+
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                //ValidateIssuer = true,
+                //ValidIssuer = builder.Configuration.GetSection("JwtOptions:Issuer").Value,
+
+                //ValidateAudience = true,
+                //ValidAudience = builder.Configuration.GetSection("JwtOptions:Audience").Value,
+
+                //ValidateIssuerSigningKey = true,
+                //IssuerSigningKey = securityKey,
+
+                //RequireExpirationTime = true,
+                //ValidateLifetime = true,
+
+                //ClockSkew = TimeSpan.Zero
+
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = securityKey,
+                ValidateIssuer = false,
+                ValidateAudience = false
+            };
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+            {
+                options.RequireHttpsMetadata = false;
+                options.SaveToken = true;
+                options.TokenValidationParameters = tokenValidationParameters;
+            });
+
+;
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -141,7 +152,13 @@ namespace Api
             }
 
             app.UseHttpsRedirection();
-
+            app.UseCors(builder => builder
+                .SetIsOriginAllowed(orign => true)
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials());
+            app.UseRouting();
+            app.UseAuthentication();
             app.UseAuthorization();
 
 

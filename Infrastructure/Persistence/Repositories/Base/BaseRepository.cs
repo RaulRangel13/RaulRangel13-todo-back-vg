@@ -1,4 +1,5 @@
-﻿using Domain.Interfaces.Repositories.Base;
+﻿using Domain.Entities.Base;
+using Domain.Interfaces.Repositories.Base;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Infrastructure.Persistence.Repositories.Base
 {
-    public class BaseRepository<T> : IBaseRepository<T> where T : class
+    public class BaseRepository<T> : IBaseRepository<T> where T : BaseEntity
     {
         private readonly DbContext _dbContext;
 
@@ -24,7 +25,7 @@ namespace Infrastructure.Persistence.Repositories.Base
 
         public async Task<T> GetByIdyAsync(int id)
         {
-            return await _dbContext.Set<T>().FindAsync(id);    
+            return await _dbContext.Set<T>().AsNoTracking().FirstOrDefaultAsync(x=>x.Id==id);    
         }
 
         public async Task<T> CreateAsync(T entity)

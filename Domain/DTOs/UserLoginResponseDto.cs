@@ -4,6 +4,8 @@ namespace Domain.DTOs
 {
     public class UserLoginResponseDto
     {
+        public string UserName { get; set; }
+        public string Email { get; set; }
         public bool Sucesso  => Erros.Count == 0;
         
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -16,10 +18,12 @@ namespace Domain.DTOs
         public UserLoginResponseDto() =>
             Erros = new List<string>();
 
-        public UserLoginResponseDto(bool sucesso, string accessToken, string refreshToken) : this()
+        public UserLoginResponseDto(bool sucesso, string accessToken, string refreshToken, string email, string userName) : this()
         {
             AccessToken = accessToken;
             RefreshToken = refreshToken;
+            Email = email;
+            UserName = userName;
         }
 
         public void AdicionarErro(string erro) =>
